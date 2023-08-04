@@ -1,0 +1,87 @@
+---4.--What are the start and end dates of the experiment?
+A.2023-01-25 ,2023-02-06
+
+SELECT MIN(join_dt),Max(join_dt)
+FROM groups
+;
+
+--5.How many total users were in the experiment?
+A.48943
+SELECT count(id)
+FROM users
+;
+--6.How many users were in the control and treatment groups?
+A.{"group":"A","count":"24343"}
+{"group":"B","count":"24600"}
+SELECT "group",count(uid)
+FROM groups
+GROUP BY 1
+
+--7.What was the conversion rate of all users?
+A.4.2663298154109449
+SELECT 100.0* COUNT( distinct a.uid) / COUNT(u.id) AS conversion_rate
+FROM users u
+left join activity a
+on u.id = a.uid
+
+--8.What is the user conversion rate for the control and treatment groups?
+A.{"group":"A","conversion_rate":"3.9136136382263749"}
+{"group":"B","conversion_rate":"4.6150729335494327"}
+SELECT g.group,100.0* COUNT( distinct a.uid) / COUNT(g.uid) AS conversion_rate
+FROM groups g
+left join activity a
+on a.uid = g.uid
+group by 1
+
+--9.What is the average amount spent per user for the control and treatment groups, including users who did not convert?
+A.{"group":"A","conversion_rate":"3.3663594404061873"}
+{"group":"B","conversion_rate":"3.37987548090722319"}
+SELECT g.group,sum(spent)/COUNT(u.id) AS conversion_rate
+FROM users u
+left join groups g
+on u.id = g.uid
+left join activity a
+on u.id = a.uid
+group by 1
+
+-- *The following query has been used for the test statistics
+
+Write a SQL query that returns: the user ID, the user’s country, the user’s gender, the user’s device type, the user’s test group,
+whether or not they converted (spent > $0), and how much they spent in total ($0+). 
+
+A.
+SELECT distinct g.uid as userid,COALESCE(u.country,'notknown') as country,COALESCE(u.gender,'notknown') as gender,
+COALESCE(g.device,'notknown') as device,g.group,
+    COUNT(DISTINCT g.uid) AS total_users,
+    COUNT(DISTINCT a.uid) AS converted_users,
+    COUNT(DISTINCT g.uid) - COUNT(DISTINCT a.uid) AS non_converted_users,
+    CAST(COUNT(DISTINCT a.uid) * 100 / COUNT(DISTINCT g.uid) AS INT) AS conversion_rate,
+    COALESCE(SUM(a.spent), 0) AS total_amount_spent
+FROM groups g
+LEFT JOIN activity a ON g.uid = a.uid
+LEFT JOIN users u ON g.uid = u.id
+GROUP BY 1,2,3,4,5
+order by total_amount_spent desc
+
+-- *The following query has been used for the Novelty effect
+A.
+SELECT distinct g.uid as userid,COALESCE(u.country,'notknown') as country,COALESCE(u.gender,'notknown') as gender,
+COALESCE(g.device,'notknown') as device,g.group,g.join_dt as join_dt,a.dt as purchase_dt,
+    COUNT(DISTINCT g.uid) AS total_users,
+    COUNT(DISTINCT a.uid) AS converted_users,
+    COUNT(DISTINCT g.uid) - COUNT(DISTINCT a.uid) AS non_converted_users,
+    CAST(COUNT(DISTINCT a.uid) * 100 / COUNT(DISTINCT g.uid) AS INT) AS conversion_rate,
+    COALESCE(SUM(a.spent), 0) AS total_amount_spent
+FROM groups g
+LEFT JOIN activity a ON g.uid = a.uid
+LEFT JOIN users u ON g.uid = u.id
+GROUP BY 1,2,3,4,5,6,7
+order by total_amount_spent desc
+
+
+
+
+
+
+
+
